@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 //#region scene , camera, Renderer,OrbitControls 
+
+
+
 // creating a scene 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -14,6 +17,8 @@ camera.position.set(0, 0, 500);
 let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+renderer.shadowMap.enabled = true;
+
 
 
 // orbit controls
@@ -1259,6 +1264,7 @@ function task14() {
 }
 function task15() {
     clearScene();
+    //#region helper function
     function handleBaseWidth() {
         return 60;
     }
@@ -1274,19 +1280,62 @@ function task15() {
     function circleDepth() {
         return 10;
     }
+
     // initiazing the origin 
     const origin = new THREE.Vector2(0, 0);
 
+    //#endregion
+
+    //#region plane for base shadow effect 
+    const geometry = new THREE.PlaneGeometry(20000, 20000);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffff00, side: THREE.DoubleSide });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.rotateX(Math.PI / 2);
+    plane.receiveShadow = true;
+    plane.position.set(0, 0, 0);
+    scene.add(plane);
+
+
+    //#endregion
+
+    //#region light
+    const light = new THREE.SpotLight(0xffffff, 2000);
+    light.position.set(0, 700, 100);
+    light.castShadow = true;
+    scene.add(light);
+
+    const light1 = new THREE.SpotLight(0xffffff, 100);
+    light1.position.set(0, 500, -20);
+    scene.add(light1);
+    light1.castShadow = true;
+
+    const light2 = new THREE.PointLight(0xffffff, 50000);
+    light2.position.set(0, 500, -100);
+    scene.add(light2);
+    light2.castShadow = true;
+    light2.shadow.camera.near = 1;
+    light2.shadow.camera.far = 20000;
+
+    const light3 = new THREE.DirectionalLight(0xffffff, 0.1);
+    light3.position.set(0, 50, 100);
+    scene.add(light3);
+    light3.castShadow = true;
+
+    const light4 = new THREE.PointLight(0xffffff, 70000);
+    light4.position.set(0, 500, 200);
+    scene.add(light4);
+    light4.castShadow = true;
+    light4.shadow.camera.near = 1;
+    light4.shadow.camera.far = 20000;
+
+    
     let radius = 25 // used in circle radius and the positining
 
     // here the declared for dynamically use in R shape geometry and For positioning the Handle Hold Shape
     let h = 100, w = 80, space = 40;
 
-    function handleBase() {
-        const light = new THREE.DirectionalLight(0x909090, 5);
-        light.position.set(100, 200, 500);
-        scene.add(light);
 
+    function handleBase() {
 
         // creating function for hole
         function createHole(x, y, radius) {
@@ -1321,8 +1370,6 @@ function task15() {
         handleBaseShape.holes.push(createHole(origin.x + handleBaseWidth() / 2, origin.y + handleBaseWidth() / 2, screwHoleDiameter / 2));
         handleBaseShape.holes.push(createHole(origin.x + handleBaseWidth() / 2, origin.y + handleBaseHeight() - handleBaseWidth() / 2, screwHoleDiameter / 2));
 
-
-
         let dep = 5;
         const extrudeSetting = {
             depth: depth(),
@@ -1330,7 +1377,7 @@ function task15() {
         }
 
         const handleBaseGeometry = new THREE.ExtrudeGeometry(handleBaseShape, extrudeSetting);
-        const handleBaseMaterial = new THREE.MeshStandardMaterial({
+        const handleBaseMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
             side: THREE.DoubleSide,
             wireframe: false,
@@ -1338,14 +1385,7 @@ function task15() {
             metalness: 0.2
         });
         const handleBase = new THREE.Mesh(handleBaseGeometry, handleBaseMaterial);
-
-        function screw() {
-            const screw = new THREE.Mesh(new THREE.CircleGeometry(20, 32), new THREE.Material({ color: 0xffffff }));
-            screw.position.set(0, 0, 0)
-            scene.add(screw);
-        }
-
-
+        handleBase.castShadow = true;
         function circle() {
 
             const circleShape = new THREE.Shape();
@@ -1356,11 +1396,11 @@ function task15() {
                 bevelEnabled: false,
             };
             const circleGeometry = new THREE.ExtrudeGeometry(circleShape, extrudeSettings);
-            const circleMaterial = new THREE.MeshBasicMaterial({ color: 0xbf8452, side: THREE.DoubleSide });
+            const circleMaterial = new THREE.MeshPhysicalMaterial({ color: 0xCFE9DA, side: THREE.DoubleSide });
             const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            circle.castShadow = true;
             circle.position.set(handleBaseWidth() / 2 - radius, handleBaseHeight() / 2)
             circle.position.z = depth();
-            // scene.add( circle );
 
             return circle;
         }
@@ -1387,6 +1427,7 @@ function task15() {
             const RGeometry = new THREE.ExtrudeGeometry(RShape, extrudeSetting1);
             const RMaterial = new THREE.MeshPhysicalMaterial({ color: 0xCFE9DA, side: THREE.DoubleSide, wireframe: false });
             const R = new THREE.Mesh(RGeometry, RMaterial);
+            R.castShadow=true;
             R.position.set(origin.x + handleBaseWidth() / 2 - 20, origin.y + handleBaseHeight() / 2 + 5, circleDepth() + h + 20);
             R.rotateX(-Math.PI / 2)
             return R;
@@ -1396,12 +1437,6 @@ function task15() {
         function handleHold() {
             let height = 40, width = 200;
             const handleHoldShape = new THREE.Shape();
-            // handleHoldShape.moveTo(origin.x, origin.y+height/2);
-            // handleHoldShape.bezierCurveTo(origin.x, origin.y+height/2,origin.x+width/2, origin.y+height,origin.x+width, origin.y+height/2);
-            // handleHoldShape.bezierCurveTo(origin.x+width, origin.y+height/2,origin.x+width/2, origin.y,origin.x, origin.y+height/2);
-
-
-            // new path handle 
             handleHoldShape.moveTo(origin.x + height / 2, origin.y + height); // origin 
             handleHoldShape.bezierCurveTo(origin.x, origin.y + height, origin.x + width / 2, origin.y + height + 15, origin.x + width, origin.y + height);
             handleHoldShape.lineTo(origin.x + width, origin.y);
@@ -1414,14 +1449,12 @@ function task15() {
             const handleHoldGeometry = new THREE.ExtrudeGeometry(handleHoldShape, extrudeSettings);
             const handleHoldMaterial = new THREE.MeshPhysicalMaterial({ color: 0xCFE9DA, side: THREE.DoubleSide });
             const handleHold = new THREE.Mesh(handleHoldGeometry, handleHoldMaterial);
+            handleHold.castShadow = true;
             handleHold.position.set(handleBaseWidth() / 2 - height / 2 + w, handleBaseHeight() / 2 + 5, circleDepth() + h);
-            // scene.add(handleHold);
 
             return handleHold;
         }
         handleBase.add(handleHold());
-
-        // handleBase. position.set(1000, 0, 0)
 
         // here the edges of handle Base geometry
         const edges = new THREE.Mesh(new THREE.EdgesGeometry(handleBaseGeometry), new THREE.LineBasicMaterial({ color: 0xffffff }));
@@ -1432,10 +1465,6 @@ function task15() {
     }
 
     function handleBase2() {
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(0, 0, 500);
-        scene.add(light);
-
 
         // creating function for hole
         function createHole(x, y, radius) {
@@ -1482,7 +1511,7 @@ function task15() {
             wireframe: false
         });
         const handleBase = new THREE.Mesh(handleBaseGeometry, handleBaseMaterial);
-
+        handleBase.castShadow=true;
         // here tge screw shape of handle base 
         function screw() {
             const screwShape = new THREE.Shape();
@@ -1517,6 +1546,7 @@ function task15() {
             const circleGeometry = new THREE.ExtrudeGeometry(circleShape, extrudeSettings);
             const circleMaterial = new THREE.MeshStandardMaterial({ color: 0xbf8452, side: THREE.DoubleSide });
             const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            circle.castShadow= true;
             circle.position.set(handleBaseWidth() / 2 - radius, handleBaseHeight() / 2)
             circle.position.z = depth();
             return circle;
@@ -1544,6 +1574,7 @@ function task15() {
             const RGeometry = new THREE.ExtrudeGeometry(RShape, extrudeSetting1);
             const RMaterial = new THREE.MeshStandardMaterial({ color: 0xbf8452, side: THREE.DoubleSide, wireframe: false });
             const R = new THREE.Mesh(RGeometry, RMaterial);
+            R.castShadow = true;
             R.position.set(origin.x + handleBaseWidth() / 2 + 20, origin.y + handleBaseHeight() / 2 + 45, circleDepth() + h + 20);
             R.rotateX(3 * Math.PI / 2);
             R.rotateY(Math.PI)
@@ -1572,6 +1603,7 @@ function task15() {
             const handleHoldGeometry = new THREE.ExtrudeGeometry(handleHoldShape, extrudeSettings);
             const handleHoldMaterial = new THREE.MeshStandardMaterial({ color: 0xbf8452, side: THREE.DoubleSide });
             const handleHold = new THREE.Mesh(handleHoldGeometry, handleHoldMaterial);
+            handleHold.castShadow=true;
             handleHold.position.set(-handleBaseWidth() / 2 + height / 2 - 10, handleBaseHeight() / 2 + 5, circleDepth() + h + 20);
             handleHold.rotateY(Math.PI);
             return handleHold;
@@ -1589,9 +1621,13 @@ function task15() {
     }
 
     const group = new THREE.Group();
+    // group.add(plane);
     group.add(handleBase());
     group.add(handleBase2());
+
     scene.add(group);
+
+
 
 }
 function task16() {
@@ -2776,294 +2812,7 @@ function task21() {
 
 }
 
-function task22() {
-    clearScene();
-    //#region Raycast
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const polygonVertices = [];
-    const vectorAngles = [];
-    const vertexAngles = [];
-    const extrudeStartPoints = [];
-    const extrudeEndPoints = [];
-    const cuttingLines = [];
-    const extrudeDirectionsByEdge = [];
-    const extrusionHeight = 10;
 
-    const planeGeometry = new THREE.PlaneGeometry(500, 500);
-    const planeMaterial = new THREE.MeshBasicMaterial({
-        visible: true,
-        color: "white",
-        side: THREE.DoubleSide,
-    });
-    const drawingPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    // drawingPlane.scale.set(0.1, 0.1, 0.1);
-    drawingPlane.position.set(0, 0, 0);
-    scene.add(drawingPlane);
-
-    
-    //#endregion
-
-    function drawCircleAt(point) {
-        const circle = new THREE.Mesh(
-            new THREE.CircleGeometry(10),
-            new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
-        circle.position.copy(point);
-        scene.add(circle);
-    }
-
-    function extrudeFaceBetween(startPoint, endPoint) {
-        const shape = new THREE.Shape();
-        const depth = 0;
-        const height = extrusionHeight;
-        shape.moveTo(0, 0);
-        shape.lineTo(depth, 0);
-        shape.lineTo(depth, height);
-        shape.lineTo(0, height);
-        shape.lineTo(0, 0);
-
-        const path = new THREE.LineCurve3(startPoint, endPoint);
-        const extrudeSettings = {
-            steps: 1,
-            bevelEnabled: false,
-            extrudePath: path,
-        };
-
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            wireframe: false,
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-
-        const direction = new THREE.Vector3().subVectors(endPoint, startPoint);
-        let dominantAxis;
-        if (Math.abs(direction.x) > Math.abs(direction.y)) {
-            dominantAxis = direction.x > 0 ? "x" : "-x";
-        } else if (Math.abs(direction.y) > Math.abs(direction.x)) {
-            dominantAxis = direction.y > 0 ? "y" : "-y";
-        }
-
-        extrudeDirectionsByEdge.push(dominantAxis);
-
-        const positionAttribute = geometry.attributes.position;
-        const uniqueVerticesSet = new Set();
-        const uniqueVertices = [];
-        for (let i = 0; i < positionAttribute.count; i++) {
-            const x = positionAttribute.getX(i);
-            const y = positionAttribute.getY(i);
-            const z = positionAttribute.getZ(i);
-            const vertex = JSON.stringify([x, y, z]);
-            if (!uniqueVerticesSet.has(vertex)) {
-                uniqueVerticesSet.add(vertex);
-                uniqueVertices.push([x, y, z]);
-            }
-        }
-
-        extrudeStartPoints.push(uniqueVertices[2]);
-        extrudeEndPoints.push(uniqueVertices[0]);
-
-        scene.add(mesh);
-    }
-
-    function calculateAngles() {
-        if (polygonVertices.length < 3) return;
-        for (let i = 1; i < polygonVertices.length; i++) {
-            if (i == polygonVertices.length - 1) {
-                polygonVertices[0] = polygonVertices[1];
-            }
-            const prevVertex =
-                polygonVertices[
-                (i - 1 + polygonVertices.length) % polygonVertices.length
-                ];
-            const currentVertex = polygonVertices[i];
-            const nextVertex = polygonVertices[(i + 1) % polygonVertices.length];
-
-            // This is the point where the angle is calculated using th side of the rectangle shape
-            const pointLeft = new THREE.Vector3(...extrudeStartPoints[i - 1]);
-            const commonPoint = new THREE.Vector3(...polygonVertices[i]);
-            const pointRight = new THREE.Vector3(
-                ...extrudeEndPoints[i % extrudeEndPoints.length]
-            );
-            // drawCircleAt(pointLeft);
-            // drawCircleAt(pointRight);
-            // drawCircleAt(commonPoint);
-            const vectorAvertexAngle = new THREE.Vector3().subVectors(
-                pointLeft,
-                commonPoint
-            );
-            const vectorBvertexAngle = new THREE.Vector3().subVectors(
-                pointRight,
-                commonPoint
-            );
-            const vertexAngle = vectorAvertexAngle.angleTo(vectorBvertexAngle);
-            vertexAngles.push(vertexAngle);
-            // Ends here
-
-            const vectorA = new THREE.Vector3().subVectors(prevVertex, currentVertex);
-            const vectorB = new THREE.Vector3().subVectors(nextVertex, currentVertex);
-            const angle = vectorA.angleTo(vectorB);
-            vectorAngles.push(angle);
-            console.log(prevVertex, currentVertex, nextVertex);
-
-            const canvas = document.createElement("canvas");
-            canvas.width = 128;
-            canvas.height = 64;
-            const context = canvas.getContext("2d");
-            context.fillStyle = "rgb(255, 255, 255)";
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.font = "24px Arial";
-            context.fillStyle = "white";
-            context.textAlign = "center";
-            context.fillText(
-                (vertexAngle * (180 / Math.PI)).toFixed(1) + "°",
-                canvas.width / 2,
-                canvas.height / 2 + 8
-            );
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.position.copy(currentVertex);
-            sprite.scale.set(0.5, 0.25, 1);
-            sprite.userData.isAngleLabel = true;
-            // scene.add(sprite);
-
-            const bisector = new THREE.Vector3()
-                .addVectors(vectorA.normalize(), vectorB.normalize())
-                .normalize();
-
-            const arrowLength = extrusionHeight * 1.2;
-            const arrowColor = 0xffffff;
-            const arrowEnd = new THREE.Vector3().addVectors(
-                currentVertex,
-                bisector.multiplyScalar(arrowLength)
-            );
-            cuttingLines.push(arrowEnd);
-            const arrowLineGeometry = new THREE.BufferGeometry().setFromPoints([
-                currentVertex,
-                arrowEnd,
-            ]);
-            const arrowLineMaterial = new THREE.LineBasicMaterial({
-                color: arrowColor,
-            });
-            const arrowLine = new THREE.Line(arrowLineGeometry, arrowLineMaterial);
-            scene.add(arrowLine);
-        }
-    }
-
-    function findExtrudePath() {
-        for (let i = 0; i < polygonVertices.length - 1; i++) {
-            extrudeFaceBetween(polygonVertices[i], polygonVertices[i + 1]);
-        }
-    }
-
-    function stepFinal() {
-        vectorAngles.forEach((angle) => {
-            console.log(angle * (180 / Math.PI));
-        });
-        vertexAngles.forEach((angle) => {
-            console.log(angle * (180 / Math.PI));
-        });
-
-        let faceIndex = 0;
-        scene.traverse((child) => {
-            if (child.isMesh && child.geometry instanceof THREE.ExtrudeGeometry) {
-                const geometry = child.geometry;
-                const positionAttribute = geometry.attributes.position;
-                for (let i = 0; i < positionAttribute.count; i++) {
-                    const x = positionAttribute.getX(i);
-                    const y = positionAttribute.getY(i);
-                    const z = positionAttribute.getZ(i);
-
-                    const start = extrudeStartPoints[faceIndex];
-                    const end = extrudeEndPoints[faceIndex];
-                    if (x === start[0] && y === start[1] && z === start[2]) {
-                        positionAttribute.setXYZ(
-                            i,
-                            cuttingLines[faceIndex].x,
-                            cuttingLines[faceIndex].y,
-                            z
-                        );
-                    }
-
-                    if (x === end[0] && y === end[1] && z === end[2]) {
-                        positionAttribute.setXYZ(
-                            i,
-                            cuttingLines[
-                                (cuttingLines.length - 1 + faceIndex) % cuttingLines.length
-                            ].x,
-                            cuttingLines[
-                                (cuttingLines.length - 1 + faceIndex) % cuttingLines.length
-                            ].y,
-                            z
-                        );
-                    }
-                }
-                faceIndex++;
-            }
-        });
-
-        // console.log(extrudeStartPoints);
-    }
-    let isToStop = false;
-    function ch() {
-        function onClick(event) {
-           
-            const canvas = document.getElementById('myCanvas');
-
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(drawingPlane);
-            console.log(intersects);
-            
-            if (intersects.length > 0) {
-                const clickedPoint = intersects[0].point;
-                const clickedVec = new THREE.Vector3(clickedPoint.x, clickedPoint.y, 5);
-                polygonVertices.push(clickedVec);
-                
-                // Check if the shape is closed (clicked near the first point)
-                const firstPoint = polygonVertices[0];
-                console.log(polygonVertices, clickedPoint);
-
-                const isClosed =
-                    polygonVertices.length > 1 &&
-                    parseFloat(clickedPoint.x.toFixed(0)) ===
-                    parseFloat(polygonVertices[0].x.toFixed(0)) &&
-                    parseFloat(clickedPoint.y.toFixed(0)) ===
-                    parseFloat(polygonVertices[0].y.toFixed(0)) &&
-                    parseFloat(clickedPoint.z.toFixed(0)) ===
-                    parseFloat(polygonVertices[0].z.toFixed(0));
-
-                console.log(isClosed);
-
-
-                if (isClosed) {
-                    isToStop = true;
-                    console.log("Got the starting point. Polygon closed.");
-                    polygonVertices[polygonVertices.length - 1] = firstPoint.clone(); // ensure closure
-
-                    findExtrudePath();
-                    calculateAngles();
-                    stepFinal();
-                }
-
-                if (!isToStop) {
-                    drawCircleAt(clickedVec);
-                }
-            }
-
-            animate(() => { });
-        }
-        window.addEventListener("click", onClick);
-    }
-
-    setTimeout(ch, 100);
-}
 //#endregion
 
 
